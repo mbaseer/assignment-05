@@ -1,0 +1,322 @@
+// Point.cpp
+#include <cmath>
+using std::pow;
+using std::sqrt;
+
+
+#include "point.h"
+
+
+// ----------------------------------------------------------------------------
+
+
+Point::Point(float x, float y) : x(x), y(y) {}
+
+
+float Point::getX() const { return x; }
+float Point::getY() const { return y; }
+
+
+float Point::distance(const Point & a) const {
+    return sqrt( pow( a.x - this->x, 2 ) + pow( a.y - this->y, 2 ) );
+}
+ 
+
+
+
+
+
+
+/*points.h
+#ifndef SHAPES_H
+#define SHAPES_H
+// ----------------------------------------------------------------------------
+
+
+#include "point.h"
+
+
+class Shape {
+    public:
+        virtual ~Shape() {}
+        virtual bool contains(const Point & p) const = 0;  // pure virtual
+};
+
+
+// ----------------------------------------------------------------------------
+
+
+class Rectangle : public Shape {
+    private:
+        Point center;
+        float dx;
+        float dy;
+
+
+    public:
+        Rectangle(Point center = Point(), float dx = 0, float dy = 0);
+
+
+        bool contains(const Point & p) const;
+};
+
+
+class Square : public Rectangle {
+    public:
+        Square(Point center = Point(), float side = 0);
+};
+
+
+// ----------------------------------------------------------------------------
+class Ellipse : public Shape {
+    private:
+        Point f1;
+        Point f2;
+        float radius;
+
+
+    public:
+        Ellipse(Point f1 = Point(), Point f2 = Point(), float radius = 0);
+
+
+        bool contains(const Point & p) const;
+};
+
+
+class Circle : public Ellipse {
+    public:
+        Circle(Point center = Point(), float radius = 0);
+};
+// ----------------------------------------------------------------------------
+#endif  // SHAPES_H
+*/
+
+
+
+
+//shapes.cpp
+#include <cmath>
+using std::abs;
+
+
+#include "shapes.h"
+
+
+// ----------------------------------------------------------------------------
+
+
+Rectangle::Rectangle(Point center, float dx, float dy) : center(center),
+                                                         dx(dx),
+                                                         dy(dy) {}
+
+
+bool Rectangle::contains(const Point & p) const {
+    return    abs( p.getX() - center.getX() ) <= dx
+           && abs( p.getY() - center.getY() ) <= dy;
+}
+
+
+Square::Square(Point center, float side)
+    : Rectangle(center, side/2, side/2) {}
+
+
+// ----------------------------------------------------------------------------
+
+
+Ellipse::Ellipse(Point f1, Point f2, float radius) : f1(f1),
+                                                     f2(f2),
+                                                     radius(radius) {}
+
+
+bool Ellipse::contains(const Point & p) const {
+    return p.distance(f1) + p.distance(f2) <= radius;
+}
+
+
+Circle::Circle(Point center, float radius)
+    : Ellipse(center, center, radius) {}
+bool Ellipse::contains(const Point & p) const {
+    return p.distance(f1) + p.distance(f2) <= radius;
+}
+
+
+
+
+
+//shapes.h
+#ifndef SHAPES_H
+#define SHAPES_H
+// ----------------------------------------------------------------------------
+
+
+#include "point.h"
+
+
+class Shape {
+    public:
+        virtual ~Shape() {}
+        virtual bool contains(const Point & p) const = 0;  // pure virtual
+};
+
+
+// ----------------------------------------------------------------------------
+
+
+class Rectangle : public Shape {
+    private:
+        Point center;
+        float dx;
+        float dy;
+
+
+    public:
+        Rectangle(Point center = Point(), float dx = 0, float dy = 0);
+
+
+        bool contains(const Point & p) const;
+};
+
+
+class Square : public Rectangle {
+    public:
+        Square(Point center = Point(), float side = 0);
+};
+
+
+// ----------------------------------------------------------------------------
+
+
+class Ellipse : public Shape {
+    private:
+        Point f1;
+        Point f2;
+        float radius;
+
+
+    public:
+        Ellipse(Point f1 = Point(), Point f2 = Point(), float radius = 0);
+
+
+        bool contains(const Point & p) const;
+};
+
+
+class Circle : public Ellipse {
+    public:
+        Circle(Point center = Point(), float radius = 0);
+};
+
+
+// ----------------------------------------------------------------------------
+#endif  // SHAPES_H
+class Circle : public Ellipse {
+    public:
+        Circle(Point center = Point(), float radius = 0);
+};
+
+
+// ----------------------------------------------------------------------------
+#endif  // SHAPES_H
+
+
+
+
+
+
+//main.cpp
+/**
+ * Program to animate some basic shapes moving across the screen in the
+ * terminal.
+ */
+
+#include <chrono>
+#include <thread>
+
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::endl;
+
+#include "point.h"
+#include "shapes.h"
+
+// ----------------------------------------------------------------------------
+
+/**
+ * A function to draw the `Shape`s in `s` in a terminal.
+ *
+ * Arguments:
+ * - `count`: The number of `Shape`s in `s`.
+ * - `s`: An array containing pointers to each `Shape` to draw.
+ *
+ * Notes:
+ * - A terminal window is typically 80 columns wide by 25 lines high.
+ * - The width:height aspect ratio of a terminal character is approximately
+ *   1:1.9.
+ */
+void draw(const int count, const Shape * const s[]) {
+    const float xPixels = 80;
+    const float yPixels = 25;
+
+    const float xScale = 1;
+    const float yScale = 1.9;
+
+    for (float yp = 0; yp < yPixels; yp++) {
+        float y = yp * yScale;
+
+        for (float xp = 0; xp < xPixels; xp++) {
+            float x = xp * xScale;
+
+            if (yp == 0 || yp == yPixels-1) {
+                cout << "-";
+                continue;
+            }
+
+            if (xp == 0 || xp == xPixels-1) {
+                cout << "|";
+                continue;
+            }
+
+            bool includePoint = false;
+            for (int c = 0; c < count; c++)
+                if (s[c]->contains(Point(x,y)))
+                    includePoint = true;
+
+            if (includePoint)
+                cout << "*";
+            else
+                cout << " ";
+        }
+        cout << endl;
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+int main() {
+    const int frames = 40;
+    const int frameSleep = 70;  // milliseconds
+
+    // for each frame
+    for (float f = 0; f < frames; f++) {
+        // create some shapes
+        Rectangle r( Point(5+f,5), 2, 8 );
+        Square    s( Point(50-(f/2),5+(f/2)), 7 );
+        Ellipse   e( Point(10-(f/3),35+(f/3)), Point(25-(f/3),35+(f/3)), 22+f );
+        Circle    c( Point(50+(f/5),35), 15 );
+
+        // put pointers to them in an array
+        Shape * shapes[] = { &r, &s, &e, &c, };
+
+        // draw the shapes in the terminal
+        draw( sizeof(shapes) / sizeof(Shape *), shapes );
+
+        // wait before drawing the next frame
+        std::this_thread::sleep_for(std::chrono::milliseconds(frameSleep));
+    }
+
+    return 0;  // success
+}
+
+
+
